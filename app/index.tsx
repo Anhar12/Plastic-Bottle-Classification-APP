@@ -1,4 +1,6 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, BackHandler } from "react-native";
+import React, { useEffect } from "react";
+import * as NavigationBar from "expo-navigation-bar";
 import { Link } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +8,15 @@ import { StatusBar } from 'expo-status-bar';
 import AnimatedBubble from "@/components/AnimatedBubble";
 
 export default function LandingPage() {
+  useEffect(() => {
+    const hideNavBar = async () => {
+      await NavigationBar.setVisibilityAsync("hidden");
+      await NavigationBar.setBehaviorAsync("overlay-swipe");
+      await NavigationBar.setBackgroundColorAsync("transparent");
+    };
+    hideNavBar();
+  }, []);
+
   return (
     <>
       <StatusBar style="dark" translucent />
@@ -41,14 +52,20 @@ export default function LandingPage() {
           speed={3}
         />
 
-        <View className="px-6 pt-16">
+        <View className="p-6 flex-row justify-between items-center">
           <View className="flex-row items-center gap-2">
             <Ionicons name="water" size={18} color="#0B79B7" />
             <Text className="text-sky-700 font-semibold">Plastic Bottle Classification</Text>
           </View>
+
+          <TouchableOpacity
+            onPress={() => BackHandler.exitApp()}
+            className=""
+          >
+            <Ionicons name="exit-outline" size={26} color="#0B79B7" className="font-bold" />
+          </TouchableOpacity>
         </View>
 
-        {/* Hero */}
         <View className="flex-1 items-center justify-center px-8">
           <View className="w-56 h-56 bg-sky-600/30 items-center justify-center rounded-full overflow-hidden">
             <Image
@@ -58,7 +75,6 @@ export default function LandingPage() {
             />
           </View>
 
-          {/* Title */}
           <View className="mt-8 items-center">
             <Text className="text-3xl font-extrabold text-sky-800 text-center">
               Sistem Klasifikasi
@@ -68,7 +84,6 @@ export default function LandingPage() {
             </Text>
           </View>
 
-          {/* Tombol START */}
           <Link href="/klasifikasi" asChild>
             <TouchableOpacity activeOpacity={0.7} className="mt-10">
               <View className="shadow-lg shadow-cyan-500/30 overflow-hidden">
@@ -88,7 +103,6 @@ export default function LandingPage() {
 
         </View>
 
-        {/* Footer */}
         <View className="pb-8 items-center">
           <Text className="text-sky-400 text-sm">© 2025 • Anhar Khoirun Najib. All Right Reserved.</Text>
         </View>

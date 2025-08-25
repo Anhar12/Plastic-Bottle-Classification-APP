@@ -1,127 +1,336 @@
-import React, { useRef, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, Alert, Animated, PanResponder, Dimensions } from "react-native";
+import React, { useRef, useState, useEffect } from "react";
+import { View, Text, FlatList, TouchableOpacity, Alert, Animated, PanResponder, Dimensions, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
+import { CameraView, CameraType, useCameraPermissions, FlashMode } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-
-const dummyData = [
-  { id: "1", name: "lorem ipsum dolor", size: "600ml", qty: 1, weight: 16 },
-  { id: "2", name: "lorem ipsum dolor", size: "1500ml", qty: 2, weight: 60 },
-  { id: "3", name: "lorem ipsum dolor", size: "600ml", qty: 2, weight: 36 },
-];
+import * as NavigationBar from "expo-navigation-bar";
+import { StatusBar } from 'expo-status-bar';
+import Loading from "@/components/Loading";
+import InfoModal from "@/components/Information";
 
 export default function KlasifikasiScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView | null>(null);
   const [facing, setFacing] = useState<CameraType>("back");
+  const [flash, setFlash] = useState<FlashMode>("on");
   const [permission, requestPermission] = useCameraPermissions();
-  const [data, setData] = useState(dummyData);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [infoVisible, setInfoVisible] = useState(false);
 
   const screenHeight = Dimensions.get("window").height;
-  const panY = useRef(new Animated.Value(screenHeight * 0.75)).current;
+  const panY = useRef(new Animated.Value(screenHeight * 0.80)).current;
+
+  useEffect(() => {
+    const hideNavBar = async () => {
+      await NavigationBar.setVisibilityAsync("hidden");
+      await NavigationBar.setBehaviorAsync("overlay-swipe");
+      await NavigationBar.setBackgroundColorAsync("transparent");
+    };
+    hideNavBar();
+  }, []);
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 5,
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10,
       onPanResponderMove: (_, gestureState) => {
         let newY = gestureState.dy + panY._value;
         if (newY < 0) newY = 0;
-        if (newY > screenHeight * 0.75) newY = screenHeight * 0.75;
+        if (newY > screenHeight * 0.80) newY = screenHeight * 0.80;
         panY.setValue(newY);
       },
       onPanResponderRelease: (_, gestureState) => {
         Animated.spring(panY, {
-          toValue: gestureState.dy < 0 ? 0 : screenHeight * 0.75,
+          toValue: gestureState.dy < 0 ? 0 : screenHeight * 0.80,
           useNativeDriver: false,
         }).start();
       },
     })
   ).current;
 
-  const toggleCameraType = () => setFacing((current) => (current === "back" ? "front" : "back"));
+  const toggleCameraType = () => {
+    setFacing((current) => (current === "back" ? "front" : "back"));
+  };
+
+  const toggleFlash = () => {
+    setFlash((current) => (current === "off" ? "on" : "off"));
+  };
+
+  const uploadPhoto = async (uri: string, fileName?: string) => {
+    try {
+      const uriParts = uri.split(".");
+      const ext = uriParts[uriParts.length - 1];
+      const mimeType = ext === "png" ? "image/png" : "image/jpeg";
+      const name = fileName ?? `photo.${ext}`;
+
+      const formData = new FormData();
+      formData.append("file", {
+        uri,
+        type: mimeType,
+        name,
+      } as any);
+
+      const response = await fetch(
+        "https://plastic-bottle-classification-production.up.railway.app/predict",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Gagal memproses gambar");
+      }
+
+      const result = await response.json();
+      Alert.alert("Hasil Klasifikasi", `${result.brand} ${result.size} ${result.weight}g`);
+
+      setData((prev) => {
+        const existingIndex = prev.findIndex((item) => item.id === result.code);
+
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            qty: updated[existingIndex].qty + 1,
+            weight: updated[existingIndex].weight + result.weight,
+          };
+          return updated;
+        } else {
+          return [
+            ...prev,
+            {
+              id: result.code,
+              name: result.brand,
+              size: result.size,
+              qty: 1,
+              weight: result.weight,
+            },
+          ];
+        }
+      });
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "Gagal mengupload foto");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const takePicture = async () => {
     try {
-      const photo = await cameraRef.current?.takePictureAsync({ quality: 1, skipProcessing: true });
-      if (photo?.uri) {
-        Alert.alert("📸 Foto diambil!", photo.uri);
-      }
+      setLoading(true);
+      const photo = await cameraRef.current?.takePictureAsync({
+        quality: 1,
+        skipProcessing: true,
+      });
+      if (!photo?.uri) throw new Error("Gagal mengambil foto");
+      await uploadPhoto(photo.uri, photo.fileName);
     } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "Gagal mengambil foto");
+      Alert.alert("Error", e.message);
     }
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: false, quality: 1 });
-    if (!result.canceled) Alert.alert("Gambar dipilih!", result.assets[0].uri);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setLoading(true);
+      await uploadPhoto(result.assets[0].uri, result.assets[0].fileName);
+    }
   };
 
-  if (!permission) return <View className="flex-1 bg-white" />;
-  if (!permission.granted)
-    return (
-      <View className="flex-1 items-center justify-center">
-        <Text className="mb-3">We need your permission to show the camera</Text>
-        <TouchableOpacity onPress={requestPermission} className="px-4 py-2 bg-blue-500 rounded-lg">
-          <Text className="text-white">Grant permission</Text>
-        </TouchableOpacity>
-      </View>
+  const clearAll = () => {
+    Alert.alert(
+      "Konfirmasi",
+      "Apakah Anda yakin ingin menghapus semua data?",
+      [
+        { text: "Batal", style: "cancel" },
+        { text: "Hapus", style: "destructive", onPress: () => { setData([]); } }
+      ]
     );
+  };
+
+  const addCount = (id: string) => {
+    setData((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === id);
+
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          weight: updated[existingIndex].weight + updated[existingIndex].weight / updated[existingIndex].qty,
+          qty: updated[existingIndex].qty + 1,
+        };
+        return updated;
+      }
+    });
+  };
+
+  const removeCount = (id: string) => {
+    setData((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === id);
+
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          weight: updated[existingIndex].weight - updated[existingIndex].weight / updated[existingIndex].qty,
+          qty: updated[existingIndex].qty - 1,
+        };
+        if (updated[existingIndex].qty === 0) {
+          updated.splice(existingIndex, 1);
+        }
+        return updated;
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (data.length === 0) {
+      setLoading(false);
+    }
+  }, [data]);
+
+  if (!permission) return <Loading />;
+  if (!permission.granted)
+    requestPermission();
 
   return (
-    <View className="flex-1 relative">
-      {/* Kamera */}
-      <CameraView ref={cameraRef} style={{ flex: 1 }} facing={facing} />
-
-      {/* Swipe-Up List */}
-      <Animated.View
-        {...panResponder.panHandlers}
-        style={{
-          top: panY,
-          height: screenHeight
-        }}
-        className="bg-sky-100 absolute left-0 right-0 rounded-t-2xl p-6"
-      >
-        <View className="w-[40px] h-[5px] rounded-xl self-center mt-1 mb-6 bg-sky-700" />
-        <FlatList
-          data={data}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View className="flex-row justify-between mb-3">
-              <Text className="flex-1">{item.name}</Text>
-              <Text className="w-[20%] text-right">{item.size}</Text>
-              <Text className="w-[15%] text-right">x {item.qty}</Text>
-              <Text className="w-[15%] text-right">{item.weight.toString() + 'g'}</Text>
-            </View>
-          )}
+    <>
+      <StatusBar style="dark" translucent />
+      <View className="flex-1 relative">
+        <CameraView
+          ref={cameraRef}
+          style={{ flex: 1 }}
+          facing={facing}
+          ratio="1:1"
+          flash={flash}
         />
-      </Animated.View>
 
-      <View className="flex-row justify-around items-center p-4 bg-white border-t border-slate-400">
-        <TouchableOpacity
-          onPress={pickImage}
-          activeOpacity={0.7}
-          className="w-14 h-14 items-center justify-center"
-        >
-          <Ionicons name="image-outline" size={28} color="green" />
-        </TouchableOpacity>
+        <View className="flex-row justify-between items-center p-2 absolute top-0 left-0 right-0 bg-transparent">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            className="w-14 h-14 items-center justify-center"
+          >
+            <Ionicons name="arrow-back" size={28} color="#00598a" />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={takePicture}
-          activeOpacity={0.7}
-          className="w-16 h-16 rounded-full bg-sky-700 items-center justify-center"
-        >
-          <Ionicons name="camera" size={28} color="white" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setInfoVisible(true)}
+            className="w-14 h-14 items-center justify-center"
+          >
+            <Ionicons name="information-circle" size={28} color="#00598a" />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-          className="w-14 h-14 items-center justify-center"
+          <TouchableOpacity
+            onPress={toggleFlash}
+            activeOpacity={0.7}
+            className="w-14 h-14 items-center justify-center"
+          >
+            <Ionicons name={flash === "off" ? "flash-off" : "flash"} size={24} color="#00598a" />
+          </TouchableOpacity>
+        </View>
+
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={{
+            top: panY,
+            height: screenHeight
+          }}
+          className="bg-white absolute left-0 right-0 rounded-t-2xl p-6"
         >
-          <Ionicons name="exit-outline" size={28} color="red" />
-        </TouchableOpacity>
+          <View className="w-[40px] h-[5px] rounded-xl self-center mt-1 mb-6 bg-slate-400" />
+          {data.length > 0 && (
+            <TouchableOpacity
+              onPress={clearAll}
+              className="absolute right-6 top-4 flex-row gap-2 items-center"
+            >
+              <Ionicons name="trash" size={17} color="#ff6467" />
+            </TouchableOpacity>
+          )}
+          <FlatList
+            data={data}
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={() => (
+              <View className="items-center justify-center">
+                <Text className="text-sky-800/30">Belum ada hasil klasifikasi</Text>
+              </View>
+            )}
+            renderItem={({ item }) => (
+              <View className="flex-row justify-between mb-3">
+                <Text className="text-sky-800">{item.name}</Text>
+                <Text className="text-sky-800 text-right">{item.size}</Text>
+                <View className="text-left flex-row gap-2 items-center">
+                  <TouchableOpacity
+                    onPress={() => removeCount(item.id)}
+                    className="bg-sky-800 rounded-xl"
+                  >
+                    <Ionicons name="remove" size={17} color="#fff" />
+                  </TouchableOpacity>
+
+                  <Text className="text-sky-800 text-center w-[30px]">{item.qty}</Text>
+
+                  <TouchableOpacity
+                    onPress={() => addCount(item.id)}
+                    className="bg-sky-800 rounded-xl"
+                  >
+                    <Ionicons name="add" size={17} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                <Text className="text-sky-800 text-right">{item.weight.toString() + 'g'}</Text>
+              </View>
+            )}
+            ListFooterComponent={() => {
+              if (data.length === 0) return null;
+
+              const totalWeight = data.reduce((sum, item) => sum + item.weight, 0);
+              return (
+                <View className="flex-row gap-3 justify-center mt-1">
+                  <Text className="font-bold text-sky-800">Total Berat:</Text>
+                  <Text className="text-right font-bold text-sky-800">{totalWeight}g</Text>
+                </View>
+              );
+            }}
+          />
+
+        </Animated.View>
+
+        <View className="flex-row justify-around items-center p-4 bg-white border-t border-slate-400">
+          <TouchableOpacity
+            onPress={pickImage}
+            activeOpacity={0.7}
+            className="w-14 h-14 items-center justify-center"
+          >
+            <Ionicons name="image-outline" size={28} color="gray" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={takePicture}
+            activeOpacity={0.7}
+            className="w-16 h-16 rounded-full bg-sky-700 items-center justify-center"
+          >
+            <Ionicons name="camera" size={28} color="white" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={toggleCameraType}
+            activeOpacity={0.7}
+            className="w-14 h-14 items-center justify-center"
+          >
+            <Ionicons name="camera-reverse" size={28} color="gray" />
+          </TouchableOpacity>
+        </View>
+
+        {loading && <Loading />}
+
+        {infoVisible && <InfoModal visible={infoVisible} onClose={() => setInfoVisible(false)} />}
       </View>
-    </View>
+    </>
   );
 }

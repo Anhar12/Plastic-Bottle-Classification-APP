@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Plastic-Bottle-Classification",
+    "name": "Klasifikasi Sampah Botol Plastik",
     "slug": "Plastic-Bottle-Classification",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.jpeg",
     "scheme": "plasticbottleclassification",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logo.jpeg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -22,14 +22,14 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo.jpeg"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/logo.jpeg",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -51,6 +51,11 @@
       "eas": {
         "projectId": "897f1790-bc23-4693-a76e-29e103679c02"
       }
+    },
+    "androidNavigationBar": {
+      "visible": "leanback",
+      "barStyle": "light",
+      "backgroundColor": "#00000000"
     }
   }
 }

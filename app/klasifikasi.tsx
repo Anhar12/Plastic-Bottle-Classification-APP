@@ -13,29 +13,7 @@ export default function KlasifikasiScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("on");
   const [permission, requestPermission] = useCameraPermissions();
-  const [data, setData] = useState([
-    {
-      id: "1",
-      name: "Brand 1",
-      size: "Size 1",
-      weight: 100,
-      qty: 1,
-    },
-    {
-      id: "2",
-      name: "Brand 2",
-      size: "Size 2",
-      weight: 200,
-      qty: 2,
-    },
-    {
-      id: "3",
-      name: "Brand 3",
-      size: "Size 3",
-      weight: 300,
-      qty: 3,
-    },
-  ]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
 

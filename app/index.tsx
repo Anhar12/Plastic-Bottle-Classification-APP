@@ -1,25 +1,13 @@
 import { View, Text, TouchableOpacity, Image, BackHandler } from "react-native";
 import React, { useEffect } from "react";
-import * as NavigationBar from "expo-navigation-bar";
 import { Link } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
 import AnimatedBubble from "@/components/AnimatedBubble";
 
 export default function LandingPage() {
-  useEffect(() => {
-    const hideNavBar = async () => {
-      await NavigationBar.setVisibilityAsync("hidden");
-      await NavigationBar.setBehaviorAsync("overlay-swipe");
-      await NavigationBar.setBackgroundColorAsync("transparent");
-    };
-    hideNavBar();
-  }, []);
-
   return (
     <>
-      <StatusBar style="dark" translucent />
       <View
         className="flex-1 relative bg-sky-200/30"
       >

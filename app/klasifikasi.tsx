@@ -1,11 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, Alert, Animated, PanResponder, Dimensions, TextInput } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert, Animated, PanResponder, Dimensions, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import * as NavigationBar from "expo-navigation-bar";
-import { StatusBar } from 'expo-status-bar';
 import Loading from "@/components/Loading";
 import InfoModal from "@/components/Information";
 
@@ -15,34 +13,47 @@ export default function KlasifikasiScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("on");
   const [permission, requestPermission] = useCameraPermissions();
-  const [data, setData] = useState([]);
+  const [data, setData] = useState([
+    {
+      id: "1",
+      name: "Brand 1",
+      size: "Size 1",
+      weight: 100,
+      qty: 1,
+    },
+    {
+      id: "2",
+      name: "Brand 2",
+      size: "Size 2",
+      weight: 200,
+      qty: 2,
+    },
+    {
+      id: "3",
+      name: "Brand 3",
+      size: "Size 3",
+      weight: 300,
+      qty: 3,
+    },
+  ]);
   const [loading, setLoading] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
 
   const screenHeight = Dimensions.get("window").height;
-  const panY = useRef(new Animated.Value(screenHeight * 0.80)).current;
-
-  useEffect(() => {
-    const hideNavBar = async () => {
-      await NavigationBar.setVisibilityAsync("hidden");
-      await NavigationBar.setBehaviorAsync("overlay-swipe");
-      await NavigationBar.setBackgroundColorAsync("transparent");
-    };
-    hideNavBar();
-  }, []);
+  const panY = useRef(new Animated.Value(screenHeight * 0.71 )).current;
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10,
       onPanResponderMove: (_, gestureState) => {
         let newY = gestureState.dy + panY._value;
-        if (newY < 0) newY = 0;
-        if (newY > screenHeight * 0.80) newY = screenHeight * 0.80;
+        if (newY < screenHeight * 0.3) newY = screenHeight * 0.3;
+        if (newY > screenHeight * 0.71 ) newY = screenHeight * 0.71 ;
         panY.setValue(newY);
       },
       onPanResponderRelease: (_, gestureState) => {
         Animated.spring(panY, {
-          toValue: gestureState.dy < 0 ? 0 : screenHeight * 0.80,
+          toValue: gestureState.dy < 0 ? screenHeight * 0.3 : screenHeight * 0.71 ,
           useNativeDriver: false,
         }).start();
       },
@@ -123,7 +134,7 @@ export default function KlasifikasiScreen() {
       const photo = await cameraRef.current?.takePictureAsync({
         quality: 1,
         skipProcessing: true,
-      });
+      }); 
       if (!photo?.uri) throw new Error("Gagal mengambil foto");
       await uploadPhoto(photo.uri, photo.fileName);
     } catch (e: any) {
@@ -149,7 +160,7 @@ export default function KlasifikasiScreen() {
       "Apakah Anda yakin ingin menghapus semua data?",
       [
         { text: "Batal", style: "cancel" },
-        { text: "Hapus", style: "destructive", onPress: () => { setData([]); } }
+        { text: "Hapus", style: "destructive", onPress: () => { setLoading(true); setData([]); } }
       ]
     );
   };
@@ -189,6 +200,18 @@ export default function KlasifikasiScreen() {
     });
   };
 
+  const removeItem = (id: string) => {
+    setData((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === id);
+
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated.splice(existingIndex, 1);
+        return updated;
+      }
+    });
+  };
+
   useEffect(() => {
     if (data.length === 0) {
       setLoading(false);
@@ -201,7 +224,6 @@ export default function KlasifikasiScreen() {
 
   return (
     <>
-      <StatusBar style="dark" translucent />
       <View className="flex-1 relative">
         <CameraView
           ref={cameraRef}
@@ -249,9 +271,10 @@ export default function KlasifikasiScreen() {
           {data.length > 0 && (
             <TouchableOpacity
               onPress={clearAll}
-              className="absolute right-6 top-4 flex-row gap-2 items-center"
+              className="absolute right-6 top-4 flex-row gap-1 items-center"
             >
-              <Ionicons name="trash" size={17} color="#ff6467" />
+              <Text className="text-red-500">Clear</Text>
+              <Ionicons name="trash" size={22} color="#ff6467" />
             </TouchableOpacity>
           )}
           <FlatList
@@ -263,27 +286,30 @@ export default function KlasifikasiScreen() {
               </View>
             )}
             renderItem={({ item }) => (
-              <View className="flex-row justify-between mb-3">
+              <View className="flex-row justify-between mb-3 items-center">
                 <Text className="text-sky-800">{item.name}</Text>
                 <Text className="text-sky-800 text-right">{item.size}</Text>
                 <View className="text-left flex-row gap-2 items-center">
                   <TouchableOpacity
                     onPress={() => removeCount(item.id)}
-                    className="bg-sky-800 rounded-xl"
                   >
-                    <Ionicons name="remove" size={17} color="#fff" />
+                    <Ionicons name="remove-circle" size={22} color="#00598a" />
                   </TouchableOpacity>
 
                   <Text className="text-sky-800 text-center w-[30px]">{item.qty}</Text>
 
                   <TouchableOpacity
                     onPress={() => addCount(item.id)}
-                    className="bg-sky-800 rounded-xl"
                   >
-                    <Ionicons name="add" size={17} color="#fff" />
+                    <Ionicons name="add-circle" size={22} color="#00598a" />
                   </TouchableOpacity>
                 </View>
                 <Text className="text-sky-800 text-right">{item.weight.toString() + 'g'}</Text>
+                <TouchableOpacity
+                  onPress={() => removeItem(item.id)}
+                >
+                  <Ionicons name="backspace" size={22} color="#ff6467" />
+                </TouchableOpacity>
               </View>
             )}
             ListFooterComponent={() => {

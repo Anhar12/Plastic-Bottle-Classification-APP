@@ -6,15 +6,6 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import "@/global.css";
 
 export default function Layout() {
-  useEffect(() => {
-    const hideNavBar = async () => {
-      await NavigationBar.setVisibilityAsync("hidden");
-      await NavigationBar.setBehaviorAsync("overlay-swipe");
-      await NavigationBar.setBackgroundColorAsync("transparent");
-    };
-    hideNavBar();
-  }, []);
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

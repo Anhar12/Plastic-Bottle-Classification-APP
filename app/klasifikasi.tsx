@@ -1,11 +1,11 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, Alert, Animated, PanResponder, Dimensions, Image } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert, Animated, PanResponder, Dimensions, Image, Modal, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import Loading from "@/components/Loading";
-import InfoModal from "@/components/Information";
+import Information from "@/components/Information";
 
 export default function KlasifikasiScreen() {
   const router = useRouter();
@@ -16,9 +16,12 @@ export default function KlasifikasiScreen() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
+  const [pictureSize, setPictureSize] = useState(null);
 
   const screenHeight = Dimensions.get("window").height;
-  const panY = useRef(new Animated.Value(screenHeight * 0.71 )).current;
+  const screenWidth = Dimensions.get("window").width;
+
+  const panY = useRef(new Animated.Value(screenHeight * 0.71)).current;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -26,17 +29,27 @@ export default function KlasifikasiScreen() {
       onPanResponderMove: (_, gestureState) => {
         let newY = gestureState.dy + panY._value;
         if (newY < screenHeight * 0.3) newY = screenHeight * 0.3;
-        if (newY > screenHeight * 0.71 ) newY = screenHeight * 0.71 ;
+        if (newY > screenHeight * 0.71) newY = screenHeight * 0.71;
         panY.setValue(newY);
       },
       onPanResponderRelease: (_, gestureState) => {
         Animated.spring(panY, {
-          toValue: gestureState.dy < 0 ? screenHeight * 0.3 : screenHeight * 0.71 ,
+          toValue: gestureState.dy < 0 ? screenHeight * 0.3 : screenHeight * 0.71,
           useNativeDriver: false,
         }).start();
       },
     })
   ).current;
+
+  const onCameraReady = async () => {
+    if (cameraRef.current) {
+      const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
+      if (sizes.length > 0) {
+        setPictureSize(sizes[0]);
+        console.log(pictureSize);
+      }
+    }
+  };
 
   const toggleCameraType = () => {
     setFacing((current) => (current === "back" ? "front" : "back"));
@@ -111,8 +124,8 @@ export default function KlasifikasiScreen() {
       setLoading(true);
       const photo = await cameraRef.current?.takePictureAsync({
         quality: 1,
-        skipProcessing: true,
-      }); 
+        skipProcessing: false,
+      });
       if (!photo?.uri) throw new Error("Gagal mengambil foto");
       await uploadPhoto(photo.uri, photo.fileName);
     } catch (e: any) {
@@ -205,10 +218,12 @@ export default function KlasifikasiScreen() {
       <View className="flex-1 relative">
         <CameraView
           ref={cameraRef}
-          style={{ flex: 1 }}
+          style={{ width: screenWidth, height: screenHeight * 0.71 }}
           facing={facing}
-          ratio="1:1"
+          ratio="4:3"
           flash={flash}
+          pictureSize={pictureSize}
+          onCameraReady={onCameraReady}
         />
 
         <View className="flex-row justify-between items-center p-2 absolute top-0 left-0 right-0 bg-transparent">
@@ -302,10 +317,9 @@ export default function KlasifikasiScreen() {
               );
             }}
           />
-
         </Animated.View>
 
-        <View className="flex-row justify-around items-center p-4 bg-white border-t border-slate-400">
+        <View className="absolute left-0 bottom-0 w-full flex-row justify-around items-center p-4 bg-white border-t border-slate-400">
           <TouchableOpacity
             onPress={pickImage}
             activeOpacity={0.7}
@@ -333,7 +347,9 @@ export default function KlasifikasiScreen() {
 
         {loading && <Loading />}
 
-        {infoVisible && <InfoModal visible={infoVisible} onClose={() => setInfoVisible(false)} />}
+        {infoVisible && (
+          <Information onClose={() => setInfoVisible(false)} />
+        )}
       </View>
     </>
   );

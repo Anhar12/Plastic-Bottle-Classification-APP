@@ -1,114 +1,85 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import Animated, {
-  useSharedValue,
-  withTiming,
-  useAnimatedStyle,
-} from "react-native-reanimated";
+import Animated, { SlideInUp, SlideOutUp } from "react-native-reanimated";
+import { BlurView } from "expo-blur";
+import { X, Info } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
-export default function PanduanPopup({ onClose }) {
-  // shared values
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.8);
-
-  useEffect(() => {
-    // animasi muncul
-    opacity.value = withTiming(1, { duration: 300 });
-    scale.value = withTiming(1, { duration: 300 });
-  }, []);
-
-  // style animasi
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-      transform: [{ scale: scale.value }],
-    };
-  });
+export default function InfoModal({ visible, onClose }) {
+  if (!visible) return null;
 
   return (
-    <View className="w-full h-full bg-black/50 justify-center items-center px-6 absolute top-0 left-0">
+    <View className="absolute inset-0 justify-center items-center px-6">
+      <BlurView intensity={40} tint="dark" className="absolute inset-0" />
+
       <Animated.View
-        style={animatedStyle}
-        className="bg-white w-full max-w-md p-4 rounded-lg"
+        entering={SlideInUp.springify().damping(15)}
+        exiting={SlideOutUp.springify().damping(15)}
+        className="w-full max-w-md rounded-lg overflow-hidden shadow-2xl"
       >
-        <Text className="text-xl font-bold text-sky-700 mb-3 text-center">
-          Panduan
-        </Text>
-
-        <ScrollView className="px-4">
-          <Text className="text-lg font-semibold text-sky-700">
-            Cara Penggunaan:
-          </Text>
-          <View className="space-y-2 mb-4">
-            <View className="flex-row gap-2">
-              <Text className="text-gray-700">1. </Text>
-              <Text className="text-gray-700">
-                Arahkan kamera ke objek botol plastik dan tekan tombol kamera.
-              </Text>
-            </View>
-            <View className="flex-row gap-2">
-              <Text className="text-gray-700">2. </Text>
-              <Text className="text-gray-700">
-                Unggah gambar dari perangkat Anda.
-              </Text>
-            </View>
-            <View className="flex-row gap-2">
-              <Text className="text-gray-700">3. </Text>
-              <Text className="text-gray-700">
-                Tunggu beberapa saat dan hasil klasifikasi akan muncul di layar.
-              </Text>
-            </View>
-            <View className="flex-row gap-2">
-              <Text className="text-gray-700">4. </Text>
-              <Text className="text-gray-700">
-                Anda dapat mengubah jumlah kuantiti ataupun menghapusnya
-                menggunakan tombol yang tersedia.
-              </Text>
-            </View>
-          </View>
-
-          <Text className="text-lg font-semibold text-sky-700">
-            Saran Penggunaan:
-          </Text>
-          <View className="space-y-2 mb-3">
-            <View className="flex-row gap-2">
-              <Text className="text-gray-700">•</Text>
-              <Text className="text-gray-700">
-                Pastikan botol masih dalam keadaan layak dan kosong.
-              </Text>
-            </View>
-            <View className="flex-row gap-2">
-              <Text className="text-gray-700">•</Text>
-              <Text className="text-gray-700">
-                Posisikan botol sekitar 40 cm dari kamera.
-              </Text>
-            </View>
-            <View className="flex-row gap-2">
-              <Text className="text-gray-700">•</Text>
-              <Text className="text-gray-700">Pastikan pencahayaan cukup.</Text>
-            </View>
-            <View className="flex-row gap-2">
-              <Text className="text-gray-700">•</Text>
-              <Text className="text-gray-700">
-                Hindari objek lain yang mengganggu objek botol.
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
-
-        <View className="flex-row justify-end">
-          <TouchableOpacity
-            onPress={() => {
-              // animasi keluar sebelum close
-              opacity.value = withTiming(0, { duration: 200 });
-              scale.value = withTiming(0.8, { duration: 200 }, () => {
-                onClose?.();
-              });
-            }}
-          >
-            <Text className="text-center text-sky-700 font-bold text-lg px-6">
-              OK
+        <LinearGradient
+          colors={["#3BC9DB", "#0B79B7"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          className="flex-row justify-between items-center px-5 py-4"
+        >
+          <View className="flex-row gap-3 items-center">
+            <Info size={24} color="white" />
+            <Text className="text-white text-lg font-extrabold tracking-wider">
+              Panduan Aplikasi
             </Text>
+          </View>
+
+          <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
+            <X size={22} color="white" />
+          </TouchableOpacity>
+        </LinearGradient>
+
+        <View className="bg-white p-5">
+          <ScrollView className="max-h-96">
+            <Text className="text-lg mb-2 font-semibold text-sky-700">
+              Cara Penggunaan:
+            </Text>
+            {[
+              "Arahkan kamera ke objek botol plastik dan tekan tombol kamera.",
+              "Unggah gambar dari perangkat Anda.",
+              "Tunggu beberapa saat dan hasil klasifikasi akan muncul di layar.",
+              "Anda dapat mengubah jumlah kuantiti ataupun menghapusnya menggunakan tombol yang tersedia."
+            ].map((item, idx) => (
+              <View key={idx} className="flex-row gap-2 mb-2">
+                <Text className="text-sky-700 font-bold">{idx + 1}.</Text>
+                <Text className="text-gray-700 flex-1">{item}</Text>
+              </View>
+            ))}
+
+            <Text className="text-lg mt-3 mb-2 font-semibold text-sky-700">
+              Saran Penggunaan:
+            </Text>
+            {[
+              "Pastikan botol masih dalam keadaan layak dan kosong.",
+              "Posisikan botol sekitar 40 cm dari kamera.",
+              "Pastikan pencahayaan cukup.",
+              "Hindari objek lain yang dapat mengganggu objek botol."
+            ].map((item, idx) => (
+              <View key={idx} className="flex-row gap-2 mb-2">
+                <Text className="text-sky-700">•</Text>
+                <Text className="text-gray-700 flex-1">{item}</Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Tombol OK */}
+          <TouchableOpacity onPress={onClose} className="mt-6">
+            <LinearGradient
+              colors={["#3BC9DB", "#0B79B7"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              className="rounded-full py-3"
+            >
+              <Text className="text-white text-center font-extrabold text-lg tracking-wide">
+                OK, Mengerti
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </Animated.View>

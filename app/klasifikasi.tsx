@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, Alert, Animated, PanResponder, Dimensions, Image, Modal, ScrollView } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert, Animated, PanResponder, Dimensions, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -21,7 +21,7 @@ export default function KlasifikasiScreen() {
   const screenHeight = Dimensions.get("window").height;
   const screenWidth = Dimensions.get("window").width;
 
-  const panY = useRef(new Animated.Value(screenHeight * 0.71)).current;
+  const panY = useRef(new Animated.Value(screenHeight * 0.73)).current;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -29,12 +29,12 @@ export default function KlasifikasiScreen() {
       onPanResponderMove: (_, gestureState) => {
         let newY = gestureState.dy + panY._value;
         if (newY < screenHeight * 0.3) newY = screenHeight * 0.3;
-        if (newY > screenHeight * 0.71) newY = screenHeight * 0.71;
+        if (newY > screenHeight * 0.73) newY = screenHeight * 0.73;
         panY.setValue(newY);
       },
       onPanResponderRelease: (_, gestureState) => {
         Animated.spring(panY, {
-          toValue: gestureState.dy < 0 ? screenHeight * 0.3 : screenHeight * 0.71,
+          toValue: gestureState.dy < 0 ? screenHeight * 0.3 : screenHeight * 0.73,
           useNativeDriver: false,
         }).start();
       },
@@ -46,7 +46,6 @@ export default function KlasifikasiScreen() {
       const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
       if (sizes.length > 0) {
         setPictureSize(sizes[0]);
-        console.log(pictureSize);
       }
     }
   };
@@ -59,7 +58,7 @@ export default function KlasifikasiScreen() {
     setFlash((current) => (current === "off" ? "on" : "off"));
   };
 
-  const uploadPhoto = async (uri: string, fileName?: string) => {
+  const Predict = async (uri: string, fileName?: string) => {
     try {
       const uriParts = uri.split(".");
       const ext = uriParts[uriParts.length - 1];
@@ -127,7 +126,7 @@ export default function KlasifikasiScreen() {
         skipProcessing: false,
       });
       if (!photo?.uri) throw new Error("Gagal mengambil foto");
-      await uploadPhoto(photo.uri, photo.fileName);
+      await Predict(photo.uri, photo.fileName);
     } catch (e: any) {
       Alert.alert("Error", e.message);
     }
@@ -141,67 +140,67 @@ export default function KlasifikasiScreen() {
     });
     if (!result.canceled) {
       setLoading(true);
-      await uploadPhoto(result.assets[0].uri, result.assets[0].fileName);
+      await Predict(result.assets[0].uri, result.assets[0].fileName);
     }
   };
 
-  const clearAll = () => {
-    Alert.alert(
-      "Konfirmasi",
-      "Apakah Anda yakin ingin menghapus semua data?",
-      [
-        { text: "Batal", style: "cancel" },
-        { text: "Hapus", style: "destructive", onPress: () => { setLoading(true); setData([]); } }
-      ]
-    );
-  };
+const clearAll = () => {
+  Alert.alert(
+    "Konfirmasi",
+    "Apakah Anda yakin ingin menghapus semua data?",
+    [
+      { text: "Batal", style: "cancel" },
+      { text: "Hapus", style: "destructive", onPress: () => { setLoading(true); setData([]); } }
+    ]
+  );
+};
 
-  const addCount = (id: string) => {
-    setData((prev) => {
-      const existingIndex = prev.findIndex((item) => item.id === id);
+const addCount = (id: string) => {
+  setData((prev) => {
+    const existingIndex = prev.findIndex((item) => item.id === id);
 
-      if (existingIndex !== -1) {
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          weight: updated[existingIndex].weight + updated[existingIndex].weight / updated[existingIndex].qty,
-          qty: updated[existingIndex].qty + 1,
-        };
-        return updated;
-      }
-    });
-  };
+    if (existingIndex !== -1) {
+      const updated = [...prev];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        weight: updated[existingIndex].weight + updated[existingIndex].weight / updated[existingIndex].qty,
+        qty: updated[existingIndex].qty + 1,
+      };
+      return updated;
+    }
+  });
+};
 
-  const removeCount = (id: string) => {
-    setData((prev) => {
-      const existingIndex = prev.findIndex((item) => item.id === id);
+const removeCount = (id: string) => {
+  setData((prev) => {
+    const existingIndex = prev.findIndex((item) => item.id === id);
 
-      if (existingIndex !== -1) {
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          weight: updated[existingIndex].weight - updated[existingIndex].weight / updated[existingIndex].qty,
-          qty: updated[existingIndex].qty - 1,
-        };
-        if (updated[existingIndex].qty === 0) {
-          updated.splice(existingIndex, 1);
-        }
-        return updated;
-      }
-    });
-  };
-
-  const removeItem = (id: string) => {
-    setData((prev) => {
-      const existingIndex = prev.findIndex((item) => item.id === id);
-
-      if (existingIndex !== -1) {
-        const updated = [...prev];
+    if (existingIndex !== -1) {
+      const updated = [...prev];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        weight: updated[existingIndex].weight - updated[existingIndex].weight / updated[existingIndex].qty,
+        qty: updated[existingIndex].qty - 1,
+      };
+      if (updated[existingIndex].qty === 0) {
         updated.splice(existingIndex, 1);
-        return updated;
       }
-    });
-  };
+      return updated;
+    }
+  });
+};
+
+const removeItem = (id: string) => {
+  setData((prev) => {
+    const existingIndex = prev.findIndex((item) => item.id === id);
+
+    if (existingIndex !== -1) {
+      const updated = [...prev];
+      updated.splice(existingIndex, 1);
+      return updated;
+    }
+  });
+};
 
   useEffect(() => {
     if (data.length === 0) {
@@ -218,9 +217,9 @@ export default function KlasifikasiScreen() {
       <View className="flex-1 relative">
         <CameraView
           ref={cameraRef}
-          style={{ width: screenWidth, height: screenHeight * 0.71 }}
+          style={{ width: screenWidth, height: screenHeight * 0.75 }}
           facing={facing}
-          ratio="4:3"
+          ratio="1:1"
           flash={flash}
           pictureSize={pictureSize}
           onCameraReady={onCameraReady}
@@ -256,9 +255,9 @@ export default function KlasifikasiScreen() {
           {...panResponder.panHandlers}
           style={{
             top: panY,
-            height: screenHeight
+            height: screenHeight,
           }}
-          className="bg-white absolute left-0 right-0 rounded-t-2xl p-6"
+          className="bg-white absolute left-0 right-0 rounded-t-2xl p-6 shadow-xl"
         >
           <View className="w-[40px] h-[5px] rounded-xl self-center mt-1 mb-6 bg-slate-400" />
           {data.length > 0 && (
@@ -280,9 +279,9 @@ export default function KlasifikasiScreen() {
             )}
             renderItem={({ item }) => (
               <View className="flex-row justify-between mb-3 items-center">
-                <Text className="text-sky-800">{item.name}</Text>
-                <Text className="text-sky-800 text-right">{item.size}</Text>
-                <View className="text-left flex-row gap-2 items-center">
+                <Text className="text-sky-800 w-[25%]">{item.name}</Text>
+                <Text className="text-sky-800 text-right w-[15%]">{item.size}</Text>
+                <View className="text-left flex-row justify-between items-center w-[25%]">
                   <TouchableOpacity
                     onPress={() => removeCount(item.id)}
                   >
@@ -297,9 +296,10 @@ export default function KlasifikasiScreen() {
                     <Ionicons name="add-circle" size={22} color="#00598a" />
                   </TouchableOpacity>
                 </View>
-                <Text className="text-sky-800 text-right">{item.weight.toString() + 'g'}</Text>
+                <Text className="text-sky-800 text-right w-[10%]">{item.weight.toString() + 'g'}</Text>
                 <TouchableOpacity
                   onPress={() => removeItem(item.id)}
+                  className="w-[7%] flex-end"
                 >
                   <Ionicons name="backspace" size={22} color="#ff6467" />
                 </TouchableOpacity>
@@ -347,9 +347,7 @@ export default function KlasifikasiScreen() {
 
         {loading && <Loading />}
 
-        {infoVisible && (
-          <Information onClose={() => setInfoVisible(false)} />
-        )}
+        <Information visible={infoVisible} onClose={() => setInfoVisible(false)} />
       </View>
     </>
   );

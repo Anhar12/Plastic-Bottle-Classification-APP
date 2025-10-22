@@ -11,7 +11,6 @@ export default function LandingPage() {
       <View
         className="flex-1 relative bg-sky-200/30"
       >
-        {/* Dekorasi bubble */}
         <AnimatedBubble
           size={140}
           startX={50}
@@ -41,23 +40,26 @@ export default function LandingPage() {
         />
 
         <View className="p-6 flex-row justify-between items-center">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="water" size={18} color="#0B79B7" />
-            <Text className="text-sky-700 font-semibold">Plastic Bottle Classification</Text>
-          </View>
-
           <TouchableOpacity
             onPress={() => BackHandler.exitApp()}
             className=""
           >
-            <Ionicons name="exit-outline" size={26} color="#0B79B7" className="font-bold" />
+            <Ionicons name="exit-outline" size={26} color="#0B79B7" className="font-bold rotate-180" />
           </TouchableOpacity>
+
+          <View className="flex-row items-center gap-2">
+            <Text className="text-sky-700 font-semibold">Plastic Bottle Classification</Text>
+            <Image
+              source={require("@/assets/images/logo-in-half.png")}
+              className="w-6 h-6"
+            />
+          </View>
         </View>
 
         <View className="flex-1 items-center justify-center px-8">
-          <View className="w-56 h-56 bg-sky-600/30 items-center justify-center rounded-full overflow-hidden">
+          <View className="w-56 h-56 bg-sky-30 items-center justify-center rounded-full overflow-hidden">
             <Image
-              source={require("@/assets/images/logo.jpeg")}
+              source={require("@/assets/images/logo-in.png")}
               className="w-52 h-52 rounded-full"
               resizeMode="contain"
             />
@@ -68,7 +70,7 @@ export default function LandingPage() {
               Sistem Klasifikasi
             </Text>
             <Text className="text-lg font-semibold text-sky-600 mt-1 text-center">
-              Sampah Botol Plastik
+              Botol Plastik
             </Text>
           </View>
 
